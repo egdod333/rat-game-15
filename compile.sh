@@ -2,12 +2,21 @@
 #-n=no libs
 #-l=only libs
 #-e=editor
+if test -d notes;then
+  cd ./notes
+  ./notes.sh
+  if test $? -ne 0;then
+    exit 1
+  fi
+  cd ..
+fi
+#^ for developer communication
 cmd=""
 NCURSES_PATH="/opt/c9/ncurses-6.3/"
 echo "">log.txt
 args=$1;args=${args:1}
 while read -n1 i;do
-  if   test "$i" = "m" ;then
+  if test "$i" = "m" ;then
     echo Compiling main program
     gcc ./main.c -o main.out -I/opt/c9/ncurses-6.3/include -L/opt/c9/ncurses-6.3/lib/ -lm -I./lib -L./lib -l:util.a -l:r@@ui.a -l:assets.a -lncurses 2>log.txt
     if test $(stat -c%s ./log.txt) -gt 1; then
