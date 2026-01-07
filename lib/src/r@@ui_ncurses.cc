@@ -8,7 +8,8 @@
 namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h.html
   WINDOW* mainWin;
   struct {
-    unsigned int scractive:1;//one whole bit
+    component* focused;
+    unsigned char scractive:1;//bitfield packing is impl defined (worry) (use masking or whatever instead)
   } state = {
     //0-initialization
   };
@@ -31,11 +32,14 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   component::~component(){
     delwin(win);
   }
-  void component::draw(){
+  void component::corner(){
     mvwaddch(win,0,0,borderprovider(CORNER,0));
     mvwaddch(win,0,x1,borderprovider(CORNER,1));
     mvwaddch(win,y1,0,borderprovider(CORNER,2));
     mvwaddch(win,y1,x1,borderprovider(CORNER,3));
+  }
+  void component::draw(){
+    corner();
     unsigned int selstart=0;
     unsigned int y=1;
     unsigned int length=strlen(text);
@@ -53,9 +57,28 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     }
     mvwaddstr(win,y,1,&text[selstart]);
   }
+  void component::drawWrapped(){
+    corner();
+    unsigned int selstart=0;
+    unsigned int y=1;
+    unsigned int x=0;
+    unsigned int length=strlen(text);
+    for(unsigned int i=1;i<=length;i++){
+      if((text[i]==' ')||(i==length)){
+        if((x+(i-selstart))>(x1-1)){
+          y++;x=0;
+          selstart++;
+        }
+        mvwaddnstr(win,y,x+1,&text[selstart],i-selstart);
+        x+=i-selstart;
+        selstart=i;
+      }
+    }
+  }
   void component::refresh(){
     wrefresh(win);
   }
+  // void component::focus(){state.focused=&this;}
   void init(){
     mainWin = initscr();
     cbreak();

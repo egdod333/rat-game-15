@@ -20,7 +20,9 @@ namespace ui {
     component(const char* text,nsize height,nsize width,nsize y,nsize x);
     component(void);//i like having the little void in there it looks nice and neat
    ~component(void);
+    void corner();
     void draw(void);//borders n text or whatever
+    void drawWrapped();
     void refresh(void);
   };
   void init(void);
