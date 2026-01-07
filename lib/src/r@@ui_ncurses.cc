@@ -21,14 +21,15 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     }
     return '?';
   });
-  component::component(const char* content,nsize height,nsize width,nsize y,nsize x):
+  component::component(const char* content,const char* name,nsize height,nsize width,nsize y,nsize x):
     win(newwin(height,width,y,x)),
     text(content),
+    title(name),
     x0(win->_begx),y0(win->_begy),x1(win->_maxx),y1(win->_maxy)
     ,borderprovider(defaultborderprovider)
     // ,last_x0(x0),last_y0(y0),last_x1(x1),last_y1(y1)
   {}
-  component::component():component(NULL,4,16,3,3){}
+  component::component():component(NULL,NULL,4,16,3,3){}
   component::~component(){
     delwin(win);
   }
@@ -37,6 +38,12 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     mvwaddch(win,0,x1,borderprovider(CORNER,1));
     mvwaddch(win,y1,0,borderprovider(CORNER,2));
     mvwaddch(win,y1,x1,borderprovider(CORNER,3));
+    if(strlen(title)>x1-2){
+      mvwaddnstr(win,0,1,title,x1-4);
+      mvwaddstr(win,0,x1-3,"...");
+    }else{
+      mvwaddstr(win,0,1,title);
+    }
   }
   void component::draw(){
     corner();

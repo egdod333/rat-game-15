@@ -16,8 +16,9 @@ namespace ui {
     nsize& x0,y0,x1,y1;
     nsize last_x0,last_y0,last_x1,last_y1;
     const char* text;//disallow any non printing except \n
+    const char* title;
     std::function<char(border_type,nsize)> borderprovider;
-    component(const char* text,nsize height,nsize width,nsize y,nsize x);
+    component(const char* text,const char* name,nsize height,nsize width,nsize y,nsize x);
     component(void);//i like having the little void in there it looks nice and neat
    ~component(void);
     void corner();
