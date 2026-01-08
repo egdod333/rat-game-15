@@ -1,6 +1,6 @@
 #ifndef RATATOUILLE
 #define RATATOUILLE 0.0
-// #include <string>
+#include <vector>
 #include <curses.h>
 #include <functional>
 typedef NCURSES_SIZE_T nsize;
@@ -19,12 +19,16 @@ namespace ui {
     const char* title;
     std::function<char(border_type,nsize)> borderprovider;
     component(const char* text,const char* name,nsize height,nsize width,nsize y,nsize x);
+    component(const component& c);
     component(void);//i like having the little void in there it looks nice and neat
-   ~component(void);
-    void corner();
+   ~component(void);//me: why does this tea have steam shaped like a skull coming off of it
+    void corner();  //my loyal eunuch: i'm sure it tastes fine your majesty
     void draw(void);//borders n text or whatever
     void drawWrapped();
     void refresh(void);
+  };
+  class componentgroup {
+    std::vector<component> items;
   };
   void init(void);
   void stop(void);

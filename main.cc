@@ -11,7 +11,7 @@
 // #include <pthread.h>
 int main(int argc,char *argv[]){
   ui::init();
-  ui::component hello("hello world, we have per word wrapping","untitled window",8,16,2,2);
+  ui::component hello("hello world, we...\nmay have per word wrapping with breaks","untitled window",8,16,2,2);
   hello.drawWrapped();
   hello.refresh();
   getch();

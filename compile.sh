@@ -19,6 +19,7 @@ while read -n1 i;do
   if test "$i" = "m" ;then
     echo Compiling main program
     g++ ./main.cc -o main.out -I${NCURSES_PATH}include -L${NCURSES_PATH}lib/ -lm -I./lib -L./lib -l:r@@ui.a -lncurses 2>log.txt
+    # later: don't include the .a but instead the specific r@@ui version for this os
     if test $(stat -c%s ./log.txt) -gt 1; then
       echo Main program compilation error!
       cat log.txt

@@ -25,10 +25,18 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     win(newwin(height,width,y,x)),
     text(content),
     title(name),
-    x0(win->_begx),y0(win->_begy),x1(win->_maxx),y1(win->_maxy)
-    ,borderprovider(defaultborderprovider)
+    x0(win->_begx),y0(win->_begy),x1(win->_maxx),y1(win->_maxy),
+    borderprovider(defaultborderprovider)
     // ,last_x0(x0),last_y0(y0),last_x1(x1),last_y1(y1)
   {}
+  component::component(const component& c):
+    win(newwin(c.y1,c.x1,c.y0,c.x0)),
+    text(strcpy(new char[strlen(c.text)+1],c.text)),
+    title(strcpy(new char[strlen(c.title)+1],c.title)),
+    x0(win->_begx),y0(win->_begy),x1(win->_maxx),y1(win->_maxy),
+    borderprovider(c.borderprovider)
+    // ,last_x0(x0),last_y0(y0),last_x1(x1),last_y1
+    {}
   component::component():component(NULL,NULL,4,16,3,3){}
   component::~component(){
     delwin(win);
@@ -71,13 +79,19 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     unsigned int x=0;
     unsigned int length=strlen(text);
     for(unsigned int i=1;i<=length;i++){
-      if((text[i]==' ')||(i==length)){
+      if((text[i]==' ')||(i==length)||(text[i]=='\n')){
         if((x+(i-selstart))>(x1-1)){
           y++;x=0;
           selstart++;
         }
-        mvwaddnstr(win,y,x+1,&text[selstart],i-selstart);
-        x+=i-selstart;
+        if(text[i]=='\n'){
+          mvwaddnstr(win,y,x+1,&text[selstart],i-selstart);
+          y++;i++;
+          x=0;
+        }else{
+          mvwaddnstr(win,y,x+1,&text[selstart],i-selstart);
+          x+=i-selstart;
+        }
         selstart=i;
       }
     }
