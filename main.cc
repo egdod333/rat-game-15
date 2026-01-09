@@ -1,20 +1,28 @@
-#define MAIN
-// #include <util.h>
-// #include <math.h>
+#define MAIN ":3"
+#define RATATOUILLE_NCURSES "terminal illness"
 #include <r@@ui.h>
-// #include <ctype.h>
+#include <iostream>
 #include <stdio.h>
-// #include <curses.h>
-// #include <assets.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <pthread.h>
+#include <cstring>
 int main(int argc,char *argv[]){
   ui::init();
-  ui::component hello("hello world, we...\nmay have per word wrapping with breaks","untitled window",8,16,2,2);
-  hello.drawWrapped();
-  hello.refresh();
-  getch();
+  ui::textcomponent hello(new char[64],NULL,8,16,2,20);
+  int i=0;
+  int t=0;
+  while(i!='\\'){
+    clear();
+    hello.draw();
+    refresh();
+    hello.refresh();
+    i=getch();
+    if(i!=127){
+      hello.text[t]=i;
+      t++;
+    }else{
+      t--;
+      hello.text[t]=0;
+    }
+  }
   ui::stop();
   return 0;
 }

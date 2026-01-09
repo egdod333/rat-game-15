@@ -18,7 +18,7 @@ args=$1;args=${args:1}
 while read -n1 i;do
   if test "$i" = "m" ;then
     echo Compiling main program
-    g++ ./main.cc -o main.out -I${NCURSES_PATH}include -L${NCURSES_PATH}lib/ -lm -I./lib -L./lib -l:r@@ui.a -lncurses 2>log.txt
+    g++ ./main.cc -o main.out -I${NCURSES_PATH}include -L${NCURSES_PATH}lib/ -std="c++20" -lm -I./lib -L./lib -l:r@@ui.a -lncurses 2>log.txt
     # later: don't include the .a but instead the specific r@@ui version for this os
     if test $(stat -c%s ./log.txt) -gt 1; then
       echo Main program compilation error!
@@ -56,7 +56,7 @@ while read -n1 i;do
             libs[$i]="-l${libs[$i]}"
           fi
         done
-        g++ -c "./lib/src/${libs[0]}.cc" -o "./lib/src/${libs[0]}.o"  ${nc}-I./lib -L./lib ${libs[@]:2} 2>>log.txt
+        g++ -c "./lib/src/${libs[0]}.cc" -o "./lib/src/${libs[0]}.o" -std="c++20" ${nc}-I./lib -L./lib ${libs[@]:2} 2>>log.txt
         ar rcs ./lib/${libs[1]}.a ./lib/src/${libs[0]}.o ./lib/${libs[1]}.h 2>>log.txt
       fi
     done <./lib/src/order.txt
