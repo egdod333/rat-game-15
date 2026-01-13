@@ -7,6 +7,7 @@
 #include <functional>
 #include <type_traits>
 #include <vector>
+#include <cmath>
 typedef unsigned short int rat_size;
 namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-rendering-engine/
   template<typename T>
@@ -15,7 +16,13 @@ namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-
   concept integral=std::is_integral_v<T>;
   
   template<arithmetic T>
-  struct vec3{T x,y,z;};//how do i put this on a gpu if the player has one
+  struct vec3{
+    T x,y,z;
+    vec3<T> operator+(const vec3<T>& v){return vec3<T>(v.x+x,v.y+y,v.z+z);}
+    vec3<T> operator*(const vec3<T>& v){return vec3<T>(v.x*x,v.y*y,v.z*z);}
+    vec3<T> operator-(const vec3<T>& v){return vec3<T>(v.x-x,v.y-y,v.z-z);}
+    vec3<T> operator/(const vec3<T>& v){return vec3<T>(v.x/x,v.y/y,v.z/z);}
+  };//how do i put this on a gpu if the player has one
   template<arithmetic T>
   struct lin3{vec3<T> a,b;};
   template<arithmetic T>
@@ -27,13 +34,23 @@ namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-
   template<arithmetic T>
   struct tri2{vec2<T> a,b,c;int color;};
   
+  template<arithmetic T>
+  void rot(vec3<T>& v,char d){
+    float r1=cos(d/128.0*M_PI),r2=sin(d/128.0*M_PI);
+    float x=(v.x*r1)-(v.y*r2);
+    v.y=v.y*r1+v.x*r2;
+    v.x=x;
+  }
+  
   extern std::vector<lin3<float>> map;
+  extern double fov;
   
   void init();
   void stop();
 }
 namespace ui {//reason everything is noexcept is that if it stops in the middle of something the terminal
   using namespace render;
+  extern int penis;
   enum border_type {//gets lobotomized and needs a restart (annoying as fuck)
     VERTICAL,//(if you write something that crashes or segfaults or whatever i get to kill and eat you)
     HORIZONTAL,
@@ -75,6 +92,8 @@ namespace ui {//reason everything is noexcept is that if it stops in the middle 
     void putPixel(vec2<integral auto> p,char color) const;
     void drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const;
     public:
+    vec3<float> cPos{0,0,0};
+    unsigned char cRot=0;//you can only have 256 rotations
     cameracomponent(char* name,rat_size height,rat_size width,rat_size y,rat_size x) noexcept;
     cameracomponent(const char* name,rat_size height,rat_size width,rat_size y,rat_size x) noexcept;
     cameracomponent(const component& c) noexcept;

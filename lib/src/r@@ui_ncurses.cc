@@ -6,6 +6,12 @@
 #include <cstring>
 #include <r@@ui.h>// be to c (n)curses. this is for multiplatform viability. will write shell scripts for whatever
 #include <functional>
+#include <cmath>
+namespace render {
+  std::vector<lin3<float>> map;
+  double fov=M_PI/2.0;
+  double fov1=tan(fov/2.0);
+}
 namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h.html
   using namespace render;
   WINDOW* mainWin;
@@ -17,6 +23,7 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     }
     return '?';
   };
+  int penis;
 
   component::component(char* ptitle,rat_size height,rat_size width,rat_size y,rat_size x) noexcept:
     c_win(newwin(height,width,y,x)),
@@ -71,6 +78,8 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   cameracomponent::~cameracomponent() noexcept{}
 
   void component::corner() const noexcept {
+    // wattron(c_win,COLOR_PAIR(0));
+    // attron(COLOR_PAIR(0));
     mvwaddch(c_win,0,0,borderprovider(CORNER,0));
     mvwaddch(c_win,0,x1,borderprovider(CORNER,1));
     mvwaddch(c_win,y1,0,borderprovider(CORNER,2));
@@ -108,21 +117,22 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     }
   }
   void cameracomponent::draw() const noexcept {
+    wclear(c_win);
+    // wattron(c_win,COLOR_PAIR(0));
     corner();
-    std::for_each(map.begin(),map.end(),[this](const lin3<float> l){
+    // std::cout<<fov1<<'\n';
+    std::for_each(map.begin(),map.end(),[this](lin3<float> l){
+      l.a=l.a-cPos;l.b=l.b-cPos;
+      rot(l.a,cRot);rot(l.b,cRot);
       vec2<rat_size> a={
-        .x=(rat_size)(((l.a.y/l.a.x)+1)/2*x1),
-        .y=(rat_size)(((l.a.z/l.a.x)+1)/2*y1)
+        .x=(rat_size)((l.a.y/l.a.x+1)/2*x1),
+        .y=(rat_size)((l.a.z/l.a.x+1)/2*y1)
       },b={
-        .x=(rat_size)(((l.b.y/l.b.x)+1)/2*x1),
-        .y=(rat_size)(((l.b.z/l.b.x)+1)/2*y1)
+        .x=(rat_size)((l.a.y/l.a.x+1)/2*x1),
+        .y=(rat_size)((l.b.z/l.b.x+1)/2*y1)
       };
       drawLine(a,b,1);
-      putPixel(a,2);
-      putPixel(b,2);
     });
-    
-    // kill(myself)
   }
 
   void component::refresh() const noexcept {wrefresh(c_win);}
@@ -130,25 +140,23 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   // void component::focus(){state.focused=&this;}
 
   void cameracomponent::putPixel(vec2<integral auto> p,char color) const {
-    wattron(c_win,COLOR_PAIR(color));
+    // wattron(c_win,COLOR_PAIR(color));
     mvwaddch(c_win,p.y,p.x,'+');
   }
   
   void cameracomponent::drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const {
-    signed short int
+    short signed int
       sx=(a.x<b.x)?1:-1,
       sy=(a.y<b.y)?1:-1,
       dx=(a.x>b.x)?a.x-b.x:b.x-a.x,
       dy=(a.y>b.y)?a.y-b.y:b.y-a.y,
-      err=(dx>dy)?dx/2:dy/2,e2=0;
-    int i=0;
-    // printf("s=(%u,%u),d=(%u,%u),err=%u",sx,sy,dx,dy,err);
-    while(i<200){
+      err=(dx>dy)?dx/2:dy/2,e2=0,i=0;
+    while(i!=255){
       // printf("(%u,%u),",a.x,a.y);
       this->putPixel(a,1);
-        printf("%u",a.x);
       if(a.x==b.x){
         if(a.y==b.y){break;}}
+      if((a.x<b.x)^(sx+1!=0)){if((a.y<b.y)^(sy+1!=0)){break;}}
       e2=err;
       if(e2>-dx){err-=dy;a.x+=sx;}
       if(e2< dy){err+=dx;a.y+=sy;}
@@ -173,26 +181,65 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   }
 }
 namespace render {
-  std::vector<lin3<float>> map;
   void genMap(){
     map.push_back(
       (lin3<float>){
-        (vec3<float>){ 1, 0.5, 3},
-        (vec3<float>){ 4, 0.5, 3}}
+        (vec3<float>){1,1,1},
+        (vec3<float>){1,1,-1}
+      }
     );
     map.push_back(
       (lin3<float>){
-        (vec3<float>){ 1,-0.5, 2},
-        (vec3<float>){ 4,-0.5, 2}}
+        (vec3<float>){1,1,-1},
+        (vec3<float>){1,-1,-1}
+      }
     );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){1,-1,-1},
+        (vec3<float>){1,-1,1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){1,-1,1},
+        (vec3<float>){-1,-1,1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,-1,1},
+        (vec3<float>){-1,-1,-1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,-1,-1},
+        (vec3<float>){-1,1,-1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,1,-1},
+        (vec3<float>){-1,1,1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,1,1},
+        (vec3<float>){1,1,1}
+      }
+    );
+
   }
   
   void init(){
     assert(::ui::state.scractive);//idiot
     assert(has_colors());//we need color :/
-    start_color();
-    init_pair(1,COLOR_GREEN,COLOR_BLACK);
-    init_pair(2,COLOR_RED,COLOR_MAGENTA);
+    // start_color();
+    // init_pair(0,COLOR_WHITE,COLOR_BLACK);
+    // init_pair(1,COLOR_GREEN,COLOR_BLACK);
+    // init_pair(2,COLOR_RED,COLOR_BLACK);
     // attron(COLOR_PAIR(1));
     // wprintw(ui::mainWin,"max pairs=%u",COLOR_PAIRS);
     genMap();
