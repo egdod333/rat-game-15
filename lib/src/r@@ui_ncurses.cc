@@ -100,9 +100,9 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
           .x=(rat_size)((l.b.y/l.b.x+1)/2*x1),
           .y=(rat_size)((l.b.z/l.b.x+1)/2*y1)
         };
-        putPixel(a,1);
-        putPixel(b,1);
         drawLine(a,b,2);
+        putPixel(a,1,'+');
+        putPixel(b,1,'+');
       // }
     });
   }
@@ -111,29 +111,33 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
 
   // void component::focus(){state.focused=&this;}
 
-  void cameracomponent::putPixel(vec2<integral auto> p,char color) const {
+  void cameracomponent::putPixel(vec2<integral auto> p,char color,char c) const {
     wattron(c_win,COLOR_PAIR(color));
-    mvwaddch(c_win,p.y,p.x,'+');
+    mvwaddch(c_win,p.y,p.x,c);
   }
   
   void cameracomponent::drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const {
-    short signed int m1=a.y-b.y,m2=a.x-b.x;
-    mvwprintw(mainWin,30,0,"(%u,%u)->(%u,%u)",a.x,a.y,b.x,b.y);
-    if(abs(m1)<abs(m2)){
-      float m=static_cast<float>(m1)/m2;
-      signed char s=(m2>0?-1:1);
-      for(short signed int i=a.x;i!=b.x;i+=s){
-        putPixel((vec2<int>){i,(int)(i*m+a.y)},color);
-      }
-    }else{
-      float m=static_cast<float>(m2)/m1;
-      signed char s=(m1>0?-1:1);
-      for(short signed int i=a.y;i!=b.y;i+=s){
-        putPixel((vec2<int>){(int)(i*m+a.x),i},color);
+    if((a.x<x1)&&(a.y<y1)&&(b.x<x1)&&(b.y<y1)){
+      short signed int m1=a.y-b.y,m2=a.x-b.x;
+      short unsigned int am1=abs(m1),am2=abs(m2);
+      mvwprintw(mainWin,30,0,"(%u,%u)->(%u,%u)",a.x,a.y,b.x,b.y);
+      if(am1<am2){
+        char c=(m1==0?'-':((m1>0)^(m2>0))?'/':'\\');
+        float m=static_cast<float>(m1)/m2;
+        signed char s=(m2>0?-1:1);
+        for(short signed int i=a.x;i!=b.x;i+=s){
+          putPixel((vec2<int>){i,(int)((i-a.x)*m+a.y)},color,c);
+        }
+      }else{
+        char c=(m2==0?'|':((m1>0)^(m2>0))?'\\':'/');
+        float m=static_cast<float>(m2)/m1;
+        signed char s=(m1>0?-1:1);
+        for(short signed int i=a.y;i!=b.y;i+=s){
+          putPixel((vec2<int>){(int)(i*m+a.x),i},color,c);
+        }
       }
     }
   }
-  
   void init() noexcept {
     mainWin = initscr();
     cbreak();
@@ -170,36 +174,36 @@ namespace render {
         (vec3<float>){1,-1,1}
       }
     );
-    // map.push_back(
-    //   (lin3<float>){
-    //     (vec3<float>){1,-1,1},
-    //     (vec3<float>){-1,-1,1}
-    //   }
-    // );
-    // map.push_back(
-    //   (lin3<float>){
-    //     (vec3<float>){-1,-1,1},
-    //     (vec3<float>){-1,-1,-1}
-    //   }
-    // );
-    // map.push_back(
-    //   (lin3<float>){
-    //     (vec3<float>){-1,-1,-1},
-    //     (vec3<float>){-1,1,-1}
-    //   }
-    // );
-    // map.push_back(
-    //   (lin3<float>){
-    //     (vec3<float>){-1,1,-1},
-    //     (vec3<float>){-1,1,1}
-    //   }
-    // );
-    // map.push_back(
-    //   (lin3<float>){
-    //     (vec3<float>){-1,1,1},
-    //     (vec3<float>){1,1,1}
-    //   }
-    // );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){1,-1,1},
+        (vec3<float>){-1,-1,1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,-1,1},
+        (vec3<float>){-1,-1,-1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,-1,-1},
+        (vec3<float>){-1,1,-1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,1,-1},
+        (vec3<float>){-1,1,1}
+      }
+    );
+    map.push_back(
+      (lin3<float>){
+        (vec3<float>){-1,1,1},
+        (vec3<float>){1,1,1}
+      }
+    );
   }
   
   void init(){

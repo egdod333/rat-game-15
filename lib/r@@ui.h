@@ -92,7 +92,7 @@ namespace ui {//reason everything is noexcept is that if it stops in the middle 
     void draw(void) const noexcept override;
   };
   class cameracomponent:public component{
-    void putPixel(vec2<integral auto> p,char color) const;
+    void putPixel(vec2<integral auto> p,char color,char c) const;
     void drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const;
     public:
     vec3<float> cPos{0,0,0};
