@@ -93,7 +93,9 @@ namespace ui {//reason everything is noexcept is that if it stops in the middle 
   };
   class cameracomponent:public component{
     void putPixel(vec2<integral auto> p,char color,char c) const;
+    void putPixel(integral auto x,integral auto y,char color,char c) const;
     void drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const;
+    void drawLine(integral auto x0,integral auto y0,integral auto x1,integral auto y1,char color) const;
     public:
     vec3<float> cPos{0,0,0};
     unsigned char cRot=0;//you can only have 256 rotations

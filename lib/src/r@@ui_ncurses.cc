@@ -60,7 +60,7 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     }
   }
 
-  void component::draw() const noexcept {corner();mvwaddnstr(c_win,1,1,"empty component",x1-1);}
+  void component::draw() const noexcept {corner();}
   void textcomponent::draw() const noexcept {
     corner();
     unsigned int selstart=0;
@@ -93,16 +93,13 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
       l.a=l.a-cPos;l.b=l.b-cPos;
       // if((l.a.x>0)&&(l.b.x>0)){
         rot(l.a,cRot);rot(l.b,cRot);
-        vec2<rat_size> a={
-          .x=(rat_size)((l.a.y/l.a.x+1)/2*x1),
-          .y=(rat_size)((l.a.z/l.a.x+1)/2*y1)
-        },b={
-          .x=(rat_size)((l.b.y/l.b.x+1)/2*x1),
-          .y=(rat_size)((l.b.z/l.b.x+1)/2*y1)
-        };
-        drawLine(a,b,2);
-        putPixel(a,1,'+');
-        putPixel(b,1,'+');
+        rat_size x_0=(rat_size)((l.a.y/l.a.x+1)/2*x1),
+                 y_0=(rat_size)((l.a.z/l.a.x+1)/2*y1),
+                 x_1=(rat_size)((l.b.y/l.b.x+1)/2*x1),
+                 y_1=(rat_size)((l.b.z/l.b.x+1)/2*y1);
+        drawLine(x_0,y_0,x_1,y_1,2);
+        putPixel(x_0,y_0,1,'+');
+        putPixel(x_1,y_1,1,'+');
       // }
     });
   }
@@ -112,32 +109,49 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   // void component::focus(){state.focused=&this;}
 
   void cameracomponent::putPixel(vec2<integral auto> p,char color,char c) const {
-    wattron(c_win,COLOR_PAIR(color));
-    mvwaddch(c_win,p.y,p.x,c);
+    auto [x,y]=p;
+    putPixel(x,y,color,c);
   }
-  
+  void cameracomponent::putPixel(integral auto x,integral auto y,char color,char c) const {
+    wattron(c_win,COLOR_PAIR(color));
+    mvwaddch(c_win,y,x,c);
+  }
+
   void cameracomponent::drawLine(vec2<integral auto> a,vec2<integral auto> b,char color) const {
-    if((a.x<x1)&&(a.y<y1)&&(b.x<x1)&&(b.y<y1)){
-      short signed int m1=a.y-b.y,m2=a.x-b.x;
+    auto [x_0,y_0]=a;
+    auto [x_1,y_1]=b;
+    drawLine(x_0,y_0,x_1,y_1,color);
+  }
+  void cameracomponent::drawLine(integral auto x_0,integral auto y_0,integral auto x_1,integral auto y_1,char color) const {
+    // if((x0<x1)&&(y0<y1)&&(x1<x1)&&(y1<y1)){
+      short signed int m1=y_0-y_1,m2=x_0-x_1;
       short unsigned int am1=abs(m1),am2=abs(m2);
-      mvwprintw(mainWin,30,0,"(%u,%u)->(%u,%u)",a.x,a.y,b.x,b.y);
       if(am1<am2){
-        char c=(m1==0?'-':((m1>0)^(m2>0))?'/':'\\');
-        float m=static_cast<float>(m1)/m2;
+        char c=(m1==0?'-':((m1>0)^(m2>0))?'/':'\\'),c1=0;
+        float m=static_cast<float>(m1)/m2,a=y_0;
         signed char s=(m2>0?-1:1);
-        for(short signed int i=a.x;i!=b.x;i+=s){
-          putPixel((vec2<int>){i,(int)((i-a.x)*m+a.y)},color,c);
+        short signed int y=y_0;
+        for(short signed int i=x_0;i!=x_1;i+=s){
+          a=((i-x_0)*m+y_0);
+          if((((int)a)!=y)||((int)((i-x_0+s)*m+y_0)!=y)){c1=c;}else{c1='-';}
+          y=(int)a;
+          putPixel(i,y,color,c1);
         }
       }else{
-        char c=(m2==0?'|':((m1>0)^(m2>0))?'\\':'/');
-        float m=static_cast<float>(m2)/m1;
+        char c=(m2==0?'-':((m2>0)^(m1>0))?'/':'\\'),c1=0;
+        float m=static_cast<float>(m2)/m1,a=x_0;
         signed char s=(m1>0?-1:1);
-        for(short signed int i=a.y;i!=b.y;i+=s){
-          putPixel((vec2<int>){(int)(i*m+a.x),i},color,c);
+        short signed int x=x_0;
+        for(short signed int i=y_0;i!=y_1;i+=s){
+          a=((i-y_0)*m+x_0);
+          if((((int)a)!=x)||((int)((i-y_0+s)*m+x_0)!=x)){c1=c;}else{c1='-';}
+          x=(int)a;
+          putPixel(x,i,color,c1);
         }
       }
-    }
+    // }
   }
+
   void init() noexcept {
     mainWin = initscr();
     cbreak();
@@ -154,6 +168,7 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     endwin();
   }
 }
+
 namespace render {
   void genMap(){
     map.push_back(
