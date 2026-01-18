@@ -1,10 +1,11 @@
 #ifndef RATATOUILLE_NCURSES
-#define RATATOUILLE_NCURSES "yello"
-#include <curses.h>//c++ curses is a fuck: tries to include etip.h when it's etip.h.in??? which is stupid
-#include <iostream>//anyways r@@ui is now a bridge to whatever graphics shit we're doing. on linux it'll
+#define RATATOUILLE_NCURSES "from src"
+#include <r@@ui.h>
+#endif
+#include <curses.h>
+#include <iostream>
 #include <cassert>
 #include <cstring>
-#include <r@@ui.h>// be to c (n)curses. this is for multiplatform viability. will write shell scripts for whatever
 #include <functional>
 #include <cmath>
 namespace render {
@@ -227,4 +228,3 @@ namespace render {
     //kill
   }
 }
-#endif

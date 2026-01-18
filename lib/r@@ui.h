@@ -1,13 +1,13 @@
 #ifndef RATATOUILLE
 #define RATATOUILLE "kickass graphics"
-#include <vector>
-// #ifdef RATATOUILLE_NCURSES
+#ifdef RATATOUILLE_NCURSES
 #include <curses.h>
-// #endif
+#endif
 #include <functional>
 #include <type_traits>
 #include <vector>
 #include <cmath>
+#include <cstring>
 typedef unsigned short int rat_size;
 namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-rendering-engine/
   template<typename T>
