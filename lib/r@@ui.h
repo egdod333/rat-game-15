@@ -27,19 +27,21 @@ namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-
     vec3<T> operator*(const vec3<T>& v){return vec3<T>(v.x*x,v.y*y,v.z*z);}
     vec3<T> operator-(const vec3<T>& v){return vec3<T>(v.x-x,v.y-y,v.z-z);}
     vec3<T> operator/(const vec3<T>& v){return vec3<T>(v.x/x,v.y/y,v.z/z);}
-    auto operator<=>(const vec3<T>& r){
+    auto operator<=>(const vec3<T>& r) const {
       auto c=(x<=>r.x);if(c!=0){return c;}
       c=(y<=>r.y);if(c!=0){return c;}
       return z<=>r.z;
     }//https://stackoverflow.com/questions/47466358/what-is-the-spaceship-three-way-comparison-operator-in-c
     bool operator==(const vec3<T>& r)const{return((x==r.x)&&(y==r.y)&&(z==r.z));}
+    bool operator<(const vec3<comparable auto>& r){return (x==r.x)?((y==r.y)?z<r.z:y<r.y):x<r.x;}
+    bool operator>(const vec3<comparable auto>& r){return (x==r.x)?((y==r.y)?z>r.z:y>r.y):x>r.x;}
   };//how do i put this on a gpu if the player has one
   template<arithmetic T> struct lin3{vec3<T> a,b;};
   template<arithmetic T> struct tri3{vec3<T> a,b,c;int color;};
   template<arithmetic T> struct vec2{T x,y;};
   template<arithmetic T> struct lin2{vec3<T> a,b;};
   template<arithmetic T> struct tri2{vec2<T> a,b,c;int color;};
-  template<arithmetic T> struct twotriangles{tri3<T> a,b;};//...
+  struct twotriangles{tri3<map_size> a,b;bool two;};//...
 
   template<arithmetic T> inline void rot(vec3<T>& v,char d){
     float r1=cos(d/128.0*M_PI),r2=sin(d/128.0*M_PI);
@@ -65,32 +67,16 @@ namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-
     });
   }
   template<arithmetic T> inline vec3<T> clipTo(const vec3<T>& a,const vec3<T>& b,const arithmetic auto& j){
+    if(a.x==b.x){
+      throw 1234;
+    }
     return((vec3<T>){
-      j,
+      (T)j,
       (j-a.x)*((a.y-b.y)/(a.x-b.x))+a.y,
       (j-a.x)*((a.z-b.z)/(a.x-b.x))+a.z
     });
   }
-  template<typename T> requires arithmetic<T>&&comparable<T>
-  twotriangles<map_size> clipToCamera(const tri3<map_size>& t) {//someone rewrite this please ffs its so bad
-    const vec3<map_size>
-    &v0=std::min(std::min(t.a,t.b),t.c),
-    &v2=std::max(std::max(t.a,t.b),t.c),
-    &v1=(t.a==v0)?((t.b==v2)?t.c:t.b):((t.b==v0)?((t.a==v2)?t.c:t.a):((t.a==v2)?t.b:t.a));//what the fuck that's not okay
-    twotriangles<map_size> out(t);//copy
-    if(v0.x<1){
-      if(v0.x<1){
-        if(v1.x<1){return out;}
-        out.a(
-          clipTo(v1,v2,1)
-          
-        );
-      }else{
-        // out.b=clipTo(v0,v2,1);
-      }
-    }
-    return out;
-  }//clip this shit
+  // twotriangles clipToCamera(const tri3<map_size>& t);
 
   extern std::vector<tri3<map_size>> map;
   extern double fov;

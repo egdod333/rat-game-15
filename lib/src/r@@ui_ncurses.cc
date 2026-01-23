@@ -8,15 +8,92 @@
 #include <cstring>
 #include <functional>
 #include <cmath>
+namespace ui {WINDOW* mainWin;}
 namespace render {
   std::vector<tri3<map_size>> map;
   double fov=M_PI/2.0;
   double fov1=tan(fov/2.0);
+  twotriangles clipToCamera(const tri3<map_size>& t) {//someone rewrite this please ffs its so bad
+    twotriangles out;//copy
+    try {
+    if(t.a.x<1){//0
+      if(t.b.x<1){//00
+        if(t.c.x<1){/*gnashes teeth terribly*/}else{//001
+          out.a=(tri3<map_size>){
+            clipTo(t.a,t.c,1),
+            clipTo(t.b,t.c,1),
+            t.c
+          };
+        }
+      }else{//01
+        if(t.c.x<1){//010
+          out.a=(tri3<map_size>){//kills you sometimes. how are they having equivalent x
+            clipTo(t.a,t.b,1),
+            t.b,
+            clipTo(t.c,t.b,1)
+          };
+        }else{//011
+          out.a=(tri3<map_size>){
+            clipTo(t.a,t.b,1),
+            t.b,
+            t.c
+          };
+          out.b=(tri3<map_size>){
+            clipTo(t.b,t.a,1),
+            clipTo(t.c,t.a,1),
+            t.c
+          };
+          out.two=1;
+        }
+      }
+    }else{//1
+      if(t.b.x<1){//10
+        if(t.c.x<1){//100
+          out.a=(tri3<map_size>){
+            t.a,
+            clipTo(t.b,t.a,1),
+            clipTo(t.c,t.a,1)
+          };
+        }else{//101
+          out.a=(tri3<map_size>){
+            t.a,
+            clipTo(t.b,t.a,1),
+            t.c
+          };
+          out.b=(tri3<map_size>){
+            clipTo(t.b,t.a,1),
+            clipTo(t.c,t.a,1),
+            t.c
+          };
+          out.two=1;
+        }
+      }else{//11
+        if(t.c.x<1){//110
+          out.a=(tri3<map_size>){
+            t.a,
+            t.b,
+            clipTo(t.a,t.c,1)
+          };
+          out.b=(tri3<map_size>){
+            t.a,
+            clipTo(t.a,t.c,1),
+            clipTo(t.b,t.c,1)
+          };
+          out.two=1;
+        }else{//111
+          //no action; default t
+        }
+      }
+    }
+    } catch (const int a) {
+      mvwprintw(ui::mainWin,2,0,"%u%u%u",t.a.x<1,t.b.x<1,t.c.x<1);
+    }
+    return out;
+  }//clip this shit
 }
 namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h.html
   using namespace render;
   static char charmap[]={' ','`','.','-','\'',':','_',',','^','=',';','>','<','+','!','r','c','*','/','z','?','s','L','T','v',')','J','7','(','|','F','i','{','C','}','f','I','3','1','t','l','u','[','n','e','o','Z','5','Y','x','j','y','a',']','2','E','S','w','q','k','P','6','h','9','d','4','V','p','O','G','b','U','A','K','X','H','m','8','R','D','#','$','B','g','0','M','N','W','Q','%','&','@'};
-  WINDOW* mainWin;
   char(*defaultborderprovider)(border_type,rat_size) noexcept=[](border_type t,rat_size i)noexcept->char{
     switch(t){
       case CORNER:return '+';
@@ -93,9 +170,10 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     std::for_each(map.begin(),map.end(),[this](tri3<map_size> l){
       l.a=l.a-cPos;l.b=l.b-cPos;l.c=l.c-cPos;
       rot(l.a,cRot);rot(l.b,cRot);rot(l.c,cRot);
-      tri3<map_size> [a,b]=clipToCamera(l);
-      drawTri(a,COLOR_PAIR(1));
-      if(a.a.x==1){}
+      // drawTri(l,1);
+      twotriangles t=clipToCamera(l);
+      drawTri(t.a,1);
+      if(t.two){drawTri(t.b,1);}
     });
   }
 
@@ -152,12 +230,16 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     putPixel(x1,y1,2,'+');
     putPixel(x2,y2,2,'+');
   }
+  FILE* peepee=fopen("log.txt","w");
   void cameracomponent::drawTri(map_size x0,map_size y0,map_size z0,map_size x1,map_size y1,map_size z1,map_size x2,map_size y2,map_size z2,char color) const {
+    if((x0<1)||(x1<1)||(x2<1)){return;}
     vec2<rat_size> s0=toScreenSpace((vec3<map_size>){x0,y0,z0},x_1,y_1);
     vec2<rat_size> s1=toScreenSpace((vec3<map_size>){x1,y1,z1},x_1,y_1);
     vec2<rat_size> s2=toScreenSpace((vec3<map_size>){x2,y2,z2},x_1,y_1);
     vec2<rat_size> smin(std::min(std::min(s0.x,s1.x),s2.x),std::min(std::min(s0.y,s1.y),s2.y));
     vec2<rat_size> smax(std::min(std::max(std::max(s0.x,s1.x),s2.x),x_1),std::min(std::max(std::max(s0.y,s1.y),s2.y),y_1));
+    fprintf(peepee,"triangle((%f,%f,%f),(%f,%f,%f),(%f,%f,%f)),",x0,y0,z0,x1,y1,z1,x2,y2,z2);
+    // fprintf(peepee,"polygon((%u,%u),(%u,%u),(%u,%u)),",s0.x,s0.y,s1.x,s1.y,s2.x,s2.y);
     for(rat_size x=smin.x;x<smax.x;x++){
       for(rat_size y=smin.y;y<smax.y;y++){
         if(triarea(x,y,s1.x,s1.y,s2.x,s2.y)>=0){if(triarea(s0.x,s0.y,x,y,s2.x,s2.y)>=0){if(triarea(s0.x,s0.y,s1.x,s1.y,x,y)>=0){
@@ -196,9 +278,9 @@ namespace render {
   void genMap(){
     map.push_back(
       (tri3<map_size>){
-        (vec3<map_size>){5, 5, 2},
-        (vec3<map_size>){5,-5, 2},
-        (vec3<map_size>){5, 5,-2}
+        (vec3<map_size>){ 5, 5, 2},
+        (vec3<map_size>){-5, 5, 2},
+        (vec3<map_size>){ 5, 5,-2}
     });
   }
 
