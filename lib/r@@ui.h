@@ -9,62 +9,90 @@
 #include <cmath>
 #include <cstring>
 typedef unsigned short int rat_size;
+typedef signed short int sign_rat_size;
+typedef float map_size;
 namespace render {//https://yuriygeorgiev.com/2022/08/17/polygon-based-software-rendering-engine/
-  template<typename T>
-  concept arithmetic=std::is_arithmetic_v<T>;
+  template<typename T>\
+  // concept arithmetic=std::is_arithmetic_v<T>;
+  concept arithmetic=requires(T a,T b){a+b;a-b;a*b;a/b;};
   template<typename T>
   concept integral=std::is_integral_v<T>;
   template<typename T>
-  concept comparable=requires(T a,T b){a<b;a>b;};
+  concept comparable=requires(T a,T b){a<=>b;};
 
-  template<arithmetic T>
-  struct vec3{
+  template<typename T>
+  requires arithmetic<T>&&comparable<T> struct vec3{
     T x,y,z;
     vec3<T> operator+(const vec3<T>& v){return vec3<T>(v.x+x,v.y+y,v.z+z);}
     vec3<T> operator*(const vec3<T>& v){return vec3<T>(v.x*x,v.y*y,v.z*z);}
     vec3<T> operator-(const vec3<T>& v){return vec3<T>(v.x-x,v.y-y,v.z-z);}
     vec3<T> operator/(const vec3<T>& v){return vec3<T>(v.x/x,v.y/y,v.z/z);}
+    auto operator<=>(const vec3<T>& r){
+      auto c=(x<=>r.x);if(c!=0){return c;}
+      c=(y<=>r.y);if(c!=0){return c;}
+      return z<=>r.z;
+    }//https://stackoverflow.com/questions/47466358/what-is-the-spaceship-three-way-comparison-operator-in-c
+    bool operator==(const vec3<T>& r)const{return((x==r.x)&&(y==r.y)&&(z==r.z));}
   };//how do i put this on a gpu if the player has one
-  template<arithmetic T>
-  struct lin3{vec3<T> a,b;};
-  template<arithmetic T>
-  struct tri3{vec3<T> a,b,c;int color;};
-  template<arithmetic T>
-  struct vec2{T x,y;};
-  template<arithmetic T>
-  struct lin2{vec3<T> a,b;};
-  template<arithmetic T>
-  struct tri2{vec2<T> a,b,c;int color;};
+  template<arithmetic T> struct lin3{vec3<T> a,b;};
+  template<arithmetic T> struct tri3{vec3<T> a,b,c;int color;};
+  template<arithmetic T> struct vec2{T x,y;};
+  template<arithmetic T> struct lin2{vec3<T> a,b;};
+  template<arithmetic T> struct tri2{vec2<T> a,b,c;int color;};
+  template<arithmetic T> struct twotriangles{tri3<T> a,b;};//...
 
-  template<arithmetic T>
-  inline void rot(vec3<T>& v,char d){
+  template<arithmetic T> inline void rot(vec3<T>& v,char d){
     float r1=cos(d/128.0*M_PI),r2=sin(d/128.0*M_PI);
     float x=(v.x*r1)-(v.y*r2);
     v.y=v.y*r1+v.x*r2;
     v.x=x;
   }
-  template<arithmetic T>
-  inline std::make_signed_t<T> triarea(T x0,T y0,T x1,T y1,T x2,T y2){
+  template<arithmetic T> inline std::make_signed_t<T> triarea(T x0,T y0,T x1,T y1,T x2,T y2){
     using st=std::make_signed_t<T>;
     return((x0 * ((st)y1-y2)) + (x1 * ((st)y2-y0)) + (x2 * ((st)y0-y1)));
   }
-  template<arithmetic T>
-  inline vec2<rat_size> toScreenSpace(vec3<T> v,rat_size sx,rat_size sy){
+  template<arithmetic T> inline vec2<rat_size> toScreenSpace(const vec3<T>& v,rat_size sx,rat_size sy){
     return((vec2<rat_size>){
       (rat_size)((v.y/v.x+1)*sx/2),
       (rat_size)((v.z/v.x+1)*sy/2)
     });
   }
-  template<arithmetic T>
-  inline tri2<rat_size> toScreenSpace(tri3<T> t,rat_size sx,rat_size sy){
+  template<arithmetic T> inline tri2<rat_size> toScreenSpace(const tri3<T>& t,rat_size sx,rat_size sy){
     return((tri2<rat_size>){
       .a=toScreenSpace(t.a,sx,sy),
       .b=toScreenSpace(t.b,sx,sy),
       .c=toScreenSpace(t.c,sx,sy)
     });
   }
+  template<arithmetic T> inline vec3<T> clipTo(const vec3<T>& a,const vec3<T>& b,const arithmetic auto& j){
+    return((vec3<T>){
+      j,
+      (j-a.x)*((a.y-b.y)/(a.x-b.x))+a.y,
+      (j-a.x)*((a.z-b.z)/(a.x-b.x))+a.z
+    });
+  }
+  template<typename T> requires arithmetic<T>&&comparable<T>
+  twotriangles<map_size> clipToCamera(const tri3<map_size>& t) {//someone rewrite this please ffs its so bad
+    const vec3<map_size>
+    &v0=std::min(std::min(t.a,t.b),t.c),
+    &v2=std::max(std::max(t.a,t.b),t.c),
+    &v1=(t.a==v0)?((t.b==v2)?t.c:t.b):((t.b==v0)?((t.a==v2)?t.c:t.a):((t.a==v2)?t.b:t.a));//what the fuck that's not okay
+    twotriangles<map_size> out(t);//copy
+    if(v0.x<1){
+      if(v0.x<1){
+        if(v1.x<1){return out;}
+        out.a(
+          clipTo(v1,v2,1)
+          
+        );
+      }else{
+        // out.b=clipTo(v0,v2,1);
+      }
+    }
+    return out;
+  }//clip this shit
 
-  extern std::vector<tri3<float>> map;
+  extern std::vector<tri3<map_size>> map;
   extern double fov;
 
   void init();
@@ -119,14 +147,17 @@ namespace ui {//reason everything is noexcept is that if it stops in the middle 
       auto [x,y]=p;
       putPixel(x,y,color,c);
     }
-    void drawLine(rat_size x_0,rat_size y_0,rat_size x_1,rat_size y_1,char color) const;
-    // void drawLine(vec2<rat_size> a,vec2<rat_size> b,char color) const: drawLine(a.x,a.y,b.x,b.y,color) {}
-    // void drawLine(lin2<rat_size> l,char color) const: drawLine(l.a,l.b,color) {}
-    void drawTri(rat_size x_0,rat_size y_0,rat_size x_1,rat_size y_1,rat_size x2,rat_size y2,char color, char ch) const;
-    // void drawTri(vec2<rat_size> a,vec2<rat_size> b,vec2<rat_size> c,char color,char ch) const: drawTri(a.x,a.y,b.x,b.y,c.x,c.y,color,ch) {}
-    void drawTri(tri2<rat_size> t,char color,char ch) const {drawTri(t.a.x,t.a.y,t.b.x,t.b.y,t.c.x,t.c.y,color,ch);}
+    void drawLine(rat_size x0,rat_size y0,rat_size x1,rat_size y1,char color) const;
+    void drawLine(const vec2<rat_size>& a,const vec2<rat_size>& b,char color) const {drawLine(a.x,a.y,b.x,b.y,color);}
+    void drawLine(const lin2<rat_size>& l,char color) const {drawLine(l.a.x,l.a.y,l.b.x,l.b.y,color);}
+    void drawTri(rat_size x0,rat_size y0,rat_size x1,rat_size y1,rat_size x2,rat_size y2,char color, char ch) const;
+    void drawTri(const vec2<rat_size>& a,const vec2<rat_size>& b,const vec2<rat_size>& c,char color,char ch) const {drawTri(a.x,a.y,b.x,b.y,c.x,c.y,color,ch);}
+    void drawTri(const tri2<rat_size>& t,char color,char ch) const {drawTri(t.a.x,t.a.y,t.b.x,t.b.y,t.c.x,t.c.y,color,ch);}
+    void drawTri(map_size x0,map_size y0,map_size z0,map_size x1,map_size y1,map_size z1,map_size x2,map_size y2,map_size z2,char color) const;
+    void drawTri(const vec3<map_size>& a,const vec3<map_size>& b,const vec3<map_size>& c,char color) const {drawTri(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,color);}
+    void drawTri(const tri3<map_size>& t,char color) const {drawTri(t.a.x,t.a.y,t.a.z,t.b.x,t.b.y,t.b.z,t.c.x,t.c.y,t.c.z,color);}
     public:
-    vec3<float> cPos{0,0,0};
+    vec3<map_size> cPos{0,0,0};
     unsigned char cRot=0;//you can only have 256 rotations
     template<constornotstr T>
     cameracomponent(T name,rat_size height,rat_size width,rat_size y,rat_size x) noexcept;

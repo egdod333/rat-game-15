@@ -1,9 +1,9 @@
 # RAT GAME 15
-forgot i am NOT remembering to update the readme with yk. updates
+forgot i am NOT remembering to update the readme with yk. updates.
 so this might be here a minute
 
 I'm using this iteration of Rat Game to learn C++. 
-However, I'm by no means good at writing neat/readable/professional code (having never taken a formal class on the subject) 
+However, I'm by no means good at writing neat/readable/professional code (having never taken an 'introductory' class on the subject) (doesn't count)
 so it might end up a mess. R@@UI is pronounced ratatouille and stands for Rat @ User Interface. 
 This is because there will be a rat in there. Remote access? Who knows, maybe. Probably not. 
 I'll welcome advice on code.

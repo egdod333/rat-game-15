@@ -9,12 +9,13 @@
 #include <functional>
 #include <cmath>
 namespace render {
-  std::vector<tri3<float>> map;
+  std::vector<tri3<map_size>> map;
   double fov=M_PI/2.0;
   double fov1=tan(fov/2.0);
 }
 namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h.html
   using namespace render;
+  static char charmap[]={' ','`','.','-','\'',':','_',',','^','=',';','>','<','+','!','r','c','*','/','z','?','s','L','T','v',')','J','7','(','|','F','i','{','C','}','f','I','3','1','t','l','u','[','n','e','o','Z','5','Y','x','j','y','a',']','2','E','S','w','q','k','P','6','h','9','d','4','V','p','O','G','b','U','A','K','X','H','m','8','R','D','#','$','B','g','0','M','N','W','Q','%','&','@'};
   WINDOW* mainWin;
   char(*defaultborderprovider)(border_type,rat_size) noexcept=[](border_type t,rat_size i)noexcept->char{
     switch(t){
@@ -87,13 +88,14 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
   }
   void cameracomponent::draw() const noexcept {
     wclear(c_win);
-    wattron(c_win,COLOR_PAIR(0));
     corner();
     // std::cout<<fov1<<'\n';
-    std::for_each(map.begin(),map.end(),[this](tri3<float> l){
+    std::for_each(map.begin(),map.end(),[this](tri3<map_size> l){
       l.a=l.a-cPos;l.b=l.b-cPos;l.c=l.c-cPos;
       rot(l.a,cRot);rot(l.b,cRot);rot(l.c,cRot);
-      drawTri(toScreenSpace(l,x_1,y_1),1,'#');
+      tri3<map_size> [a,b]=clipToCamera(l);
+      drawTri(a,COLOR_PAIR(1));
+      if(a.a.x==1){}
     });
   }
 
@@ -135,7 +137,6 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     // }
   }
   void cameracomponent::drawTri(rat_size x0,rat_size y0,rat_size x1,rat_size y1,rat_size x2,rat_size y2,char color, char ch) const {
-    mvwprintw(c_win,1,0,"%i",triarea(x0,y0,x1,y1,x2,y2));
     rat_size minx=std::min(std::min(x0,x1),x2),
              miny=std::min(std::min(y0,y1),y2),
              maxx=std::max(std::max(x0,x1),x2),
@@ -143,13 +144,36 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
     for(rat_size x=minx;x<maxx;x++){
       for(rat_size y=miny;y<maxy;y++){
         if(triarea(x,y,x1,y1,x2,y2)>=0){if(triarea(x0,y0,x,y,x2,y2)>=0){if(triarea(x0,y0,x1,y1,x,y)>=0){
-          putPixel(x,y,2,'#');
+          putPixel(x,y,3,'#');
         }}}
       }
     }
-    putPixel(x0,y0,1,'+');
-    putPixel(x1,y1,1,'+');
-    putPixel(x2,y2,1,'+');
+    putPixel(x0,y0,2,'+');
+    putPixel(x1,y1,2,'+');
+    putPixel(x2,y2,2,'+');
+  }
+  void cameracomponent::drawTri(map_size x0,map_size y0,map_size z0,map_size x1,map_size y1,map_size z1,map_size x2,map_size y2,map_size z2,char color) const {
+    vec2<rat_size> s0=toScreenSpace((vec3<map_size>){x0,y0,z0},x_1,y_1);
+    vec2<rat_size> s1=toScreenSpace((vec3<map_size>){x1,y1,z1},x_1,y_1);
+    vec2<rat_size> s2=toScreenSpace((vec3<map_size>){x2,y2,z2},x_1,y_1);
+    vec2<rat_size> smin(std::min(std::min(s0.x,s1.x),s2.x),std::min(std::min(s0.y,s1.y),s2.y));
+    vec2<rat_size> smax(std::min(std::max(std::max(s0.x,s1.x),s2.x),x_1),std::min(std::max(std::max(s0.y,s1.y),s2.y),y_1));
+    for(rat_size x=smin.x;x<smax.x;x++){
+      for(rat_size y=smin.y;y<smax.y;y++){
+        if(triarea(x,y,s1.x,s1.y,s2.x,s2.y)>=0){if(triarea(s0.x,s0.y,x,y,s2.x,s2.y)>=0){if(triarea(s0.x,s0.y,s1.x,s1.y,x,y)>=0){
+          vec3<map_size> v0(x2-x0,y2-y0,z2-z0);
+          vec3<map_size> v1(x1-x0,y1-y0,z1-z0);
+          vec3<map_size> v2(v0.y*v1.z-v0.z*v1.y,v0.z*v1.x-v0.x*v1.z,v0.x*v1.y-v0.y*v1.x);
+          float d=(v2.x*x0)+(v2.y*y0)+(v2.z*z0);
+          float d1=-(d/(v2.x+(v2.z*(static_cast<float>(y)/y_1)/x0)+(v2.y*(static_cast<float>(x)/x_1)/x0)));
+          mvwprintw(c_win,1,0,"%f   ",d1);
+          if((d1>0)&&(d1<8)){
+            putPixel(x,y,3,charmap[(char)(d1/8*sizeof(charmap))]);
+            // putPixel(x,y,3,'#');
+          }
+        }}}
+      }
+    }
   }
   void init() noexcept {
     mainWin = initscr();
@@ -171,70 +195,20 @@ namespace ui {//https://pubs.opengroup.org/onlinepubs/007908799/xcurses/curses.h
 namespace render {
   void genMap(){
     map.push_back(
-      (tri3<float>){
-        (vec3<float>){5, 1, 1},
-        (vec3<float>){5,-1, 1},
-        (vec3<float>){5, 1,-1}
-      });
-    /*
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){5,1,1},
-        (vec3<float>){5,1,-1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){5,1,-1},
-        (vec3<float>){5,-1,-1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){5,-1,-1},
-        (vec3<float>){5,-1,1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){5,-1,1},
-        (vec3<float>){4,-1,1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){4,-1,1},
-        (vec3<float>){4,-1,-1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){4,-1,-1},
-        (vec3<float>){4,1,-1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){4,1,-1},
-        (vec3<float>){4,1,1}
-      }
-    );
-    map.push_back(
-      (lin3<float>){
-        (vec3<float>){4,1,1},
-        (vec3<float>){5,1,1}
-      }
-    );
-    */
+      (tri3<map_size>){
+        (vec3<map_size>){5, 5, 2},
+        (vec3<map_size>){5,-5, 2},
+        (vec3<map_size>){5, 5,-2}
+    });
   }
 
   void init(){
     assert(::ui::state.scractive);//idiot
     assert(has_colors());//we need color :/
     start_color();
-    init_pair(0,COLOR_WHITE,COLOR_BLACK);
-    init_pair(1,COLOR_GREEN,COLOR_BLACK);
-    init_pair(2,COLOR_RED,COLOR_BLACK);
+    init_pair(1,COLOR_WHITE,COLOR_BLACK);
+    init_pair(2,COLOR_GREEN,COLOR_BLACK);
+    init_pair(3,COLOR_RED,COLOR_BLACK);
     attron(COLOR_PAIR(0));
     // wprintw(ui::mainWin,"max pairs=%u",COLOR_PAIRS);
     genMap();
